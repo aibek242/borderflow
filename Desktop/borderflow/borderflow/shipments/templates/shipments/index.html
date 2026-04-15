@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}Главная | BorderFlow{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <div class="p-4 p-md-5 rounded-4 shadow-sm bg-white">
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+            <div>
+                <h1 class="fw-bold mb-2">
+                    {% if role == 'driver' %}
+                        Мои рейсы
+                    {% elif role == 'company' %}
+                        Панель управления грузами
+                    {% else %}
+                        Отправки
+                    {% endif %}
+                </h1>
+                <p class="text-muted mb-0">
+                    Контроль маршрутов, статусов, задержек и документов в одном месте.
+                </p>
+            </div>
+
+            {% if role == 'company' %}
+                <div>
+                    <a href="{% url 'create_shipment' %}" class="btn btn-warning fw-semibold px-4 py-2 rounded-3">
+                        + Новая отправка
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-12 col-md-4">
+                <label class="form-label fw-semibold">Поиск</label>
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ query }}"
+                    class="form-control rounded-3"
+                    placeholder="Название, маршрут, отправитель..."
+                >
+            </div>
+
+            <div class="col-6 col-md-3">
+                <label class="form-label fw-semibold">Статус</label>
+                <select name="status" class="form-select rounded-3">
+                    <option value="">Все</option>
+                    {% for value, label in statuses %}
+                        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-6 col-md-2">
+                <label class="form-label fw-semibold">Хрупкие</label>
+                <select name="fragile" class="form-select rounded-3">
+                    <option value="">Все</option>
+                    <option value="1" {% if fragile_filter == '1' %}selected{% endif %}>Только хрупкие</option>
+                </select>
+            </div>
+
+            <div class="col-6 col-md-2">
+                <label class="form-label fw-semibold">Задержки</label>
+                <select name="delayed" class="form-select rounded-3">
+                    <option value="">Все</option>
+                    <option value="1" {% if delayed_filter == '1' %}selected{% endif %}>Только с задержкой</option>
+                </select>
+            </div>
+
+            <div class="col-6 col-md-1 d-flex align-items-end">
+                <button type="submit" class="btn btn-dark w-100 rounded-3">Ок</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-4">
+    {% for shipment in shipments %}
+        <div class="col-12 col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                        <div>
+                            <h4 class="fw-bold mb-1">{{ shipment.title }}</h4>
+                            <div class="text-muted small">ID: {{ shipment.id }}</div>
+                        </div>
+                        <span class="badge text-bg-dark rounded-pill px-3 py-2">
+                            {{ shipment.get_status_display }}
+                        </span>
+                    </div>
+
+                    <div class="mb-3">
+                        <div><strong>Компания:</strong> {{ shipment.company.username|default:"—" }}</div>
+                        <div><strong>Водитель:</strong> {{ shipment.driver.username|default:"—" }}</div>
+                        <div><strong>Маршрут:</strong> {{ shipment.origin_city|default:"—" }} → {{ shipment.destination_city|default:"—" }}</div>
+                        <div><strong>Прогресс:</strong> {{ shipment.progress_percent }}%</div>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        {% if shipment.is_fragile %}
+                            <span class="badge rounded-pill px-3 py-2" style="background:#facc15; color:#111;">
+                                Хрупкий: {{ shipment.get_fragile_level_display }}
+                            </span>
+                        {% endif %}
+
+                        {% if shipment.is_delayed %}
+                            <span class="badge rounded-pill px-3 py-2" style="background:#dc2626; color:#fff;">
+                                Задержка: {{ shipment.delay_minutes }} мин
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{% url 'shipment_map' shipment.id %}" class="btn btn-warning fw-semibold rounded-3">
+                            Карта
+                        </a>
+
+                        <a href="{% url 'shipment_documents' shipment.id %}" class="btn btn-outline-dark rounded-3">
+                            Документы
+                        </a>
+
+                        {% if role == 'company' %}
+                            <a href="{% url 'edit_shipment' shipment.id %}" class="btn btn-outline-primary rounded-3">
+                                Изменить
+                            </a>
+                            <a href="{% url 'delete_shipment' shipment.id %}" class="btn btn-outline-danger rounded-3">
+                                Удалить
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body text-center py-5">
+                    <h4 class="fw-bold mb-2">Пока нет отправок</h4>
+                    <p class="text-muted mb-0">Создай первую отправку и проект оживёт.</p>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

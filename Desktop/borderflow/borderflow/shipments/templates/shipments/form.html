@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | BorderFlow{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-9">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4 p-md-5">
+                <h2 class="fw-bold mb-4">{{ page_title }}</h2>
+
+                <form method="post" novalidate id="shipment-form">
+                    {% csrf_token %}
+
+                    {{ form.origin_lat }}
+                    {{ form.origin_lng }}
+                    {{ form.destination_lat }}
+                    {{ form.destination_lng }}
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Название отправки</label>
+                            {{ form.title }}
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Отправитель</label>
+                            {{ form.sender }}
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Получатель</label>
+                            {{ form.receiver }}
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Водитель</label>
+                            {{ form.driver }}
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Ожидаемое прибытие</label>
+                            {{ form.estimated_arrival }}
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Город отправления</label>
+                            {{ form.origin_city }}
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Город назначения</label>
+                            {{ form.destination_city }}
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Маршрут</label>
+                            {{ form.route }}
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label">Статус</label>
+                            {{ form.status }}
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label">Вес (кг)</label>
+                            {{ form.weight }}
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label">Стоимость</label>
+                            {{ form.price }}
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <div class="form-check mt-4">
+                                {{ form.is_fragile }}
+                                <label class="form-check-label ms-2">Хрупкий груз</label>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Уровень хрупкости</label>
+                            {{ form.fragile_level }}
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4 flex-wrap">
+                        <button type="submit" class="btn btn-dark px-4">{{ button_text }}</button>
+                        <a href="{% url 'home' %}" class="btn btn-outline-secondary">Назад</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function geocodeCity(cityName) {
+        if (!cityName) return null;
+
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cityName)}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.length > 0) {
+            return {
+                lat: parseFloat(data[0].lat),
+                lng: parseFloat(data[0].lon)
+            };
+        }
+
+        return null;
+    }
+
+    document.getElementById('shipment-form').addEventListener('submit', async function (event) {
+        event.preventDefault();
+
+        const originCity = document.getElementById('id_origin_city').value.trim();
+        const destinationCity = document.getElementById('id_destination_city').value.trim();
+
+        const originLatInput = document.getElementById('id_origin_lat');
+        const originLngInput = document.getElementById('id_origin_lng');
+        const destinationLatInput = document.getElementById('id_destination_lat');
+        const destinationLngInput = document.getElementById('id_destination_lng');
+
+        if (originCity) {
+            const originCoords = await geocodeCity(originCity);
+            if (originCoords) {
+                originLatInput.value = originCoords.lat;
+                originLngInput.value = originCoords.lng;
+            }
+        }
+
+        if (destinationCity) {
+            const destinationCoords = await geocodeCity(destinationCity);
+            if (destinationCoords) {
+                destinationLatInput.value = destinationCoords.lat;
+                destinationLngInput.value = destinationCoords.lng;
+            }
+        }
+
+        this.submit();
+    });
+</script>
+{% endblock %}
