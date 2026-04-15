@@ -1,0 +1,239 @@
+{% extends 'base.html' %}
+
+{% block title %}Карта | BorderFlow{% endblock %}
+
+{% block content %}
+<style>
+    #map {
+        height: 600px;
+        width: 100%;
+        border-radius: 18px;
+        overflow: hidden;
+    }
+
+    .leaflet-control-attribution,
+    .leaflet-bottom {
+        display: none !important;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+    <div>
+        <h1 class="fw-bold mb-1">Карта рейса</h1>
+        <p class="text-muted mb-0">{{ shipment.title }}</p>
+    </div>
+    <a href="{% url 'home' %}" class="btn btn-warning fw-semibold rounded-3 px-4">
+        Назад
+    </a>
+</div>
+
+<div class="row g-4">
+    <div class="col-12 col-xl-8">
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+            <div class="card-body p-0">
+                <div
+                    id="map"
+                    data-origin-lat="{{ shipment.origin_lat|default:'' }}"
+                    data-origin-lng="{{ shipment.origin_lng|default:'' }}"
+                    data-destination-lat="{{ shipment.destination_lat|default:'' }}"
+                    data-destination-lng="{{ shipment.destination_lng|default:'' }}"
+                    data-status="{{ shipment.status }}"
+                ></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xl-4">
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-body p-4">
+                <h4 class="fw-bold mb-3">Информация</h4>
+
+                <div class="mb-2"><strong>Статус:</strong> <span id="statusText">{{ shipment.get_status_display }}</span></div>
+                <div class="mb-2"><strong>Компания:</strong> {{ shipment.company.username|default:"—" }}</div>
+                <div class="mb-2"><strong>Водитель:</strong> {{ shipment.driver.username|default:"—" }}</div>
+                <div class="mb-2"><strong>Откуда:</strong> {{ shipment.origin_city|default:"—" }}</div>
+                <div class="mb-2"><strong>Куда:</strong> {{ shipment.destination_city|default:"—" }}</div>
+                <div class="mb-2"><strong>Прогресс:</strong> <span id="progressText">{% if shipment.status == 'done' %}100{% else %}0{% endif %}</span>%</div>
+                <div class="mb-2"><strong>Скорость:</strong> <span id="speedText">0.0</span> км/ч</div>
+                <div class="mb-2"><strong>ETA:</strong> <span id="etaText">{% if shipment.status == 'done' %}Прибыл{% elif shipment.status == 'in_transit' %}В пути{% else %}Рейс ещё не начат{% endif %}</span></div>
+
+                {% if shipment.is_fragile %}
+                    <div class="mt-3">
+                        <span class="badge rounded-pill px-3 py-2" style="background:#facc15; color:#111;">
+                            Хрупкий груз: {{ shipment.get_fragile_level_display }}
+                        </span>
+                    </div>
+                {% endif %}
+
+                {% if shipment.is_delayed %}
+                    <div class="mt-3">
+                        <span class="badge rounded-pill px-3 py-2" style="background:#dc2626; color:#fff;">
+                            Задержка: {{ shipment.delay_minutes }} мин
+                        </span>
+                    </div>
+                    <div class="mt-2"><strong>Причина:</strong> {{ shipment.delay_reason }}</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-body p-4">
+                <h4 class="fw-bold mb-3">Действия</h4>
+
+                <form method="post" action="{% url 'start_shipment' shipment.id %}" class="mb-2">
+                    {% csrf_token %}
+                    <button class="btn btn-warning fw-semibold w-100 rounded-3" type="submit">
+                        Начать рейс
+                    </button>
+                </form>
+
+                <form method="post" action="{% url 'complete_shipment' shipment.id %}" class="mb-3">
+                    {% csrf_token %}
+                    <button class="btn btn-dark w-100 rounded-3" type="submit">
+                        Отметить доставленным
+                    </button>
+                </form>
+
+                <div class="border rounded-4 p-3">
+                    <h6 class="fw-bold mb-3">Отметить задержку</h6>
+                    <form method="post" action="{% url 'delay_shipment' shipment.id %}">
+                        {% csrf_token %}
+                        {{ delay_form.as_p }}
+                        <button class="btn btn-danger w-100 rounded-3" type="submit">
+                            Сохранить задержку
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body p-4">
+                <h4 class="fw-bold mb-3">Последние события</h4>
+                {% for event in events %}
+                    <div class="border-bottom pb-2 mb-2">
+                        <div class="fw-semibold">{{ event.title }}</div>
+                        <div class="small text-muted">{{ event.message }}</div>
+                        <div class="small text-secondary">{{ event.created_at }}</div>
+                    </div>
+                {% empty %}
+                    <div class="text-muted">Событий пока нет.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', async function () {
+    const mapEl = document.getElementById('map');
+    if (!mapEl) return;
+
+    const originLat = parseFloat(mapEl.dataset.originLat);
+    const originLng = parseFloat(mapEl.dataset.originLng);
+    const destinationLat = parseFloat(mapEl.dataset.destinationLat);
+    const destinationLng = parseFloat(mapEl.dataset.destinationLng);
+    const shipmentStatus = mapEl.dataset.status || 'created';
+
+    if ([originLat, originLng, destinationLat, destinationLng].some(isNaN)) {
+        console.error('Нет координат маршрута');
+        return;
+    }
+
+    const progressText = document.getElementById('progressText');
+    const speedText = document.getElementById('speedText');
+    const statusText = document.getElementById('statusText');
+    const etaText = document.getElementById('etaText');
+
+    const map = L.map('map').setView([originLat, originLng], 6);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19
+    }).addTo(map);
+
+    const truckIcon = L.divIcon({
+        html: `
+            <div style="
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                background: #facc15;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 18px;
+                box-shadow: 0 4px 14px rgba(0,0,0,.25);
+            ">🚚</div>
+        `,
+        className: '',
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+    });
+
+    try {
+        const url = `https://router.project-osrm.org/route/v1/driving/${originLng},${originLat};${destinationLng},${destinationLat}?overview=full&geometries=geojson`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (!data.routes || !data.routes.length) {
+            console.error('OSRM не вернул маршрут');
+            return;
+        }
+
+        const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+        const start = coords[0];
+        const end = coords[coords.length - 1];
+
+        L.polyline(coords, { weight: 5 }).addTo(map);
+        L.marker(end).addTo(map).bindPopup('Точка назначения');
+
+        const marker = L.marker(start, { icon: truckIcon }).addTo(map);
+        map.fitBounds(coords, { padding: [30, 30] });
+
+        if (shipmentStatus === 'done') {
+            marker.setLatLng(end);
+            progressText.innerText = '100';
+            speedText.innerText = '0.0';
+            etaText.innerText = 'Прибыл';
+            statusText.innerText = 'Доставлен';
+            return;
+        }
+
+        if (shipmentStatus !== 'in_transit') {
+            marker.setLatLng(start);
+            progressText.innerText = '0';
+            speedText.innerText = '0.0';
+            etaText.innerText = 'Рейс ещё не начат';
+            statusText.innerText = 'Ожидает отправки';
+            return;
+        }
+
+        let i = 0;
+        const timer = setInterval(() => {
+            if (i >= coords.length - 1) {
+                clearInterval(timer);
+                progressText.innerText = '100';
+                speedText.innerText = '0.0';
+                etaText.innerText = 'Прибыл';
+                statusText.innerText = 'Доставлен';
+                return;
+            }
+
+            i++;
+            marker.setLatLng(coords[i]);
+
+            const progress = Math.floor((i / (coords.length - 1)) * 100);
+            progressText.innerText = String(progress);
+            speedText.innerText = String((60 + (i % 10)).toFixed(1));
+            etaText.innerText = `Осталось примерно ${100 - progress}% пути`;
+            statusText.innerText = 'В пути';
+        }, 900);
+    } catch (error) {
+        console.error('Ошибка карты:', error);
+    }
+});
+</script>
+{% endblock %}
