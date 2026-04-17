@@ -114,6 +114,14 @@ STATICFILES_DIRS = [
 USE_S3 = os.getenv("USE_S3", "False") == "True"
 
 # Находим этот блок в твоем settings.py
+# ================= MEDIA & STORAGE (DEBUG MODE) =================
+
+# Мы временно ПРИНУДИТЕЛЬНО ставим True, чтобы проверить, 
+# изменятся ли ссылки в логах.
+USE_S3 = os.getenv("USE_S3", "True") == "True" 
+
+print(f"DEBUG: USE_S3 is set to {USE_S3}") # Это отобразится в логах Render при запуске
+
 if USE_S3:
     AWS_ACCESS_KEY_ID = os.getenv("SUPABASE_ACCESS_KEY")
     AWS_SECRET_ACCESS_KEY = os.getenv("SUPABASE_SECRET_KEY")
@@ -124,10 +132,10 @@ if USE_S3:
     AWS_QUERYSTRING_AUTH = False
     AWS_S3_FILE_OVERWRITE = False
     
-    # ИСПРАВЬ ЭТУ СТРОКУ: 
-    # Для Supabase публичный URL выглядит так, это надежнее для браузера:
-    PROJECT_ID = AWS_S3_ENDPOINT_URL.split('//')[1].split('.')[0]
-    MEDIA_URL = f"https://{PROJECT_ID}.supabase.co/storage/v1/object/public/{AWS_STORAGE_BUCKET_NAME}/"
+    # Жестко формируем URL для проверки
+    if AWS_S3_ENDPOINT_URL:
+        PROJECT_ID = AWS_S3_ENDPOINT_URL.split('//')[1].split('.')[0]
+        MEDIA_URL = f"https://{PROJECT_ID}.supabase.co/storage/v1/object/public/{AWS_STORAGE_BUCKET_NAME}/"
     
     STORAGES = {
         "default": {
@@ -138,19 +146,12 @@ if USE_S3:
         },
     }
 else:
-    # Локальный режим (когда USE_S3=False)
     MEDIA_URL = "/media/"
     MEDIA_ROOT = BASE_DIR / "media"
-    
     STORAGES = {
-        "default": {
-            "BACKEND": "django.core.files.storage.FileSystemStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-        },
+        "default": { "BACKEND": "django.core.files.storage.FileSystemStorage" },
+        "staticfiles": { "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage" },
     }
-
 
 # ================= AUTH & SECURITY =================
 
