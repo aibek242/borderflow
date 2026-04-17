@@ -26,6 +26,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
+    "storages",  # ✅ ДОБАВИЛИ
+
     "shipments.apps.ShipmentsConfig",
 ]
 
@@ -61,7 +63,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "wsgi.application"
 
-
+# ================= DATABASE =================
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
@@ -81,36 +83,65 @@ else:
         }
     }
 
+# ================= AUTH =================
+
 AUTH_PASSWORD_VALIDATORS = []
+
+# ================= LOCALE =================
 
 LANGUAGE_CODE = "ru-ru"
 TIME_ZONE = "Asia/Qyzylorda"
 USE_I18N = True
 USE_TZ = True
 
+# ================= STATIC =================
+
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
 
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+# ================= MEDIA (ВАЖНО) =================
+
+USE_S3 = os.getenv("USE_S3", "False") == "True"
+
+if USE_S3:
+    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+
+    AWS_ACCESS_KEY_ID = os.getenv("SUPABASE_ACCESS_KEY")
+    AWS_SECRET_ACCESS_KEY = os.getenv("SUPABASE_SECRET_KEY")
+    AWS_STORAGE_BUCKET_NAME = os.getenv("SUPABASE_BUCKET_NAME")
+
+    AWS_S3_ENDPOINT_URL = os.getenv("SUPABASE_ENDPOINT")
+    AWS_S3_REGION_NAME = "us-east-1"
+
+    AWS_QUERYSTRING_AUTH = False
+
+    MEDIA_URL = f"{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/"
+
+else:
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = BASE_DIR / "media"
+
+# ================= STORAGES =================
 
 STORAGES = {
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-    },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
+
+# ================= AUTH REDIRECTS =================
 
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/home/"
 LOGOUT_REDIRECT_URL = "/login/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# ================= SECURITY =================
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
