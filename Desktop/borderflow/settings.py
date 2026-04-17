@@ -129,13 +129,19 @@ if USE_S3:
     AWS_S3_ENDPOINT_URL = os.getenv("SUPABASE_ENDPOINT")
     
     AWS_S3_REGION_NAME = "us-east-1"
-    AWS_QUERYSTRING_AUTH = False
+    AWS_QUERYSTRING_AUTH = False  # Отключаем подписи в ссылках
     AWS_S3_FILE_OVERWRITE = False
     
-    # Жестко формируем URL для проверки
-    if AWS_S3_ENDPOINT_URL:
-        PROJECT_ID = AWS_S3_ENDPOINT_URL.split('//')[1].split('.')[0]
-        MEDIA_URL = f"https://{PROJECT_ID}.supabase.co/storage/v1/object/public/{AWS_STORAGE_BUCKET_NAME}/"
+    # 1. Вырезаем ID проекта (например, 'avtyw...') из эндпоинта
+    # Из https://avtyw.supabase.co/storage/v1/s3 получаем avtyw
+    PROJECT_ID = AWS_S3_ENDPOINT_URL.split('//')[1].split('.')[0]
+    
+    # 2. Указываем кастомный домен для публичных ссылок
+    # Это заставит Django генерировать путь /storage/v1/object/public/
+    AWS_S3_CUSTOM_DOMAIN = f"{PROJECT_ID}.supabase.co/storage/v1/object/public/{AWS_STORAGE_BUCKET_NAME}"
+    
+    # 3. Финальный MEDIA_URL будет выглядеть как прямая ссылка
+    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
     
     STORAGES = {
         "default": {
@@ -144,13 +150,6 @@ if USE_S3:
         "staticfiles": {
             "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         },
-    }
-else:
-    MEDIA_URL = "/media/"
-    MEDIA_ROOT = BASE_DIR / "media"
-    STORAGES = {
-        "default": { "BACKEND": "django.core.files.storage.FileSystemStorage" },
-        "staticfiles": { "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage" },
     }
 
 # ================= AUTH & SECURITY =================
