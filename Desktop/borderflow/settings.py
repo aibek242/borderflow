@@ -2,9 +2,13 @@ import os
 from pathlib import Path
 import dj_database_url
 
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent
 
+# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-me")
+
+# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = [
@@ -18,6 +22,8 @@ CSRF_TRUSTED_ORIGINS = [
     "https://borderflow.duckdns.org",
 ]
 
+# Application definition
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -26,14 +32,14 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
-    "storages",  # ✅ ДОБАВИЛИ
+    "storages",  # Для работы с Supabase S3
 
     "shipments.apps.ShipmentsConfig",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware", # Для статики на Render
 
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -63,7 +69,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "wsgi.application"
 
-# ================= DATABASE =================
+
+# ================= DATABASE (Твои настройки Supabase Postgres) =================
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
@@ -83,66 +90,74 @@ else:
         }
     }
 
-# ================= AUTH =================
-
+# Password validation
 AUTH_PASSWORD_VALIDATORS = []
 
-# ================= LOCALE =================
-
+# Internationalization
 LANGUAGE_CODE = "ru-ru"
 TIME_ZONE = "Asia/Qyzylorda"
 USE_I18N = True
 USE_TZ = True
 
-# ================= STATIC =================
+
+# ================= STATIC FILES (Настройки WhiteNoise) =================
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
 
-# ================= MEDIA (ВАЖНО) =================
+
+# ================= MEDIA & STORAGE (Исправленный блок) =================
 
 USE_S3 = os.getenv("USE_S3", "False") == "True"
 
 if USE_S3:
-    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
-
+    # Настройки для Supabase S3 Storage
     AWS_ACCESS_KEY_ID = os.getenv("SUPABASE_ACCESS_KEY")
     AWS_SECRET_ACCESS_KEY = os.getenv("SUPABASE_SECRET_KEY")
     AWS_STORAGE_BUCKET_NAME = os.getenv("SUPABASE_BUCKET_NAME")
-
     AWS_S3_ENDPOINT_URL = os.getenv("SUPABASE_ENDPOINT")
+    
     AWS_S3_REGION_NAME = "us-east-1"
-
     AWS_QUERYSTRING_AUTH = False
-
+    AWS_S3_FILE_OVERWRITE = False
+    
+    # Ссылка на файл в Supabase будет строиться через этот URL
     MEDIA_URL = f"{AWS_S3_ENDPOINT_URL}/{AWS_STORAGE_BUCKET_NAME}/"
+    
+    # Настройка хранилищ для Django 5.0
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+else:
+    # Локальный режим (когда USE_S3=False)
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = BASE_DIR / "media"
+    
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
 
 
-
-# ================= STORAGES =================
-
-STORAGES = {
-    "default": {
-        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
-    },
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
-}
-
-# ================= AUTH REDIRECTS =================
+# ================= AUTH & SECURITY =================
 
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/home/"
 LOGOUT_REDIRECT_URL = "/login/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-# ================= SECURITY =================
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
