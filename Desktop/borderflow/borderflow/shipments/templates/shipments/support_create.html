@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}Новое обращение | BorderFlow{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-body p-4">
+                <h1 class="fw-bold mb-4">Новое обращение</h1>
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ form.subject.label }}</label>
+                        {{ form.subject }}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">{{ form.priority.label }}</label>
+                        {{ form.priority }}
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">{{ message_form.message.label }}</label>
+                        {{ message_form.message }}
+                    </div>
+
+                    <button type="submit" class="btn btn-warning fw-semibold">Создать обращение</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,116 @@
+:root {
+    --primary: #0f172a;
+    --secondary: #1e293b;
+    --accent: #facc15;
+    --body-bg: #0b1220;
+    --darkened-bg: #111827;
+    --body-fg: #e5e7eb;
+    --header-color: #ffffff;
+    --header-branding-color: #facc15;
+    --header-bg: #0f172a;
+    --header-link-color: #facc15;
+    --breadcrumbs-bg: #1f2937;
+    --breadcrumbs-fg: #e5e7eb;
+    --breadcrumbs-link-fg: #facc15;
+    --link-fg: #38bdf8;
+    --link-hover-color: #facc15;
+    --hairline-color: #334155;
+    --border-color: #334155;
+    --error-fg: #ef4444;
+    --message-success-bg: #052e16;
+    --message-warning-bg: #78350f;
+    --message-error-bg: #7f1d1d;
+    --button-bg: #facc15;
+    --button-fg: #111827;
+    --default-button-bg: #334155;
+    --default-button-hover-bg: #475569;
+    --close-button-bg: #ef4444;
+    --close-button-hover-bg: #dc2626;
+    --delete-button-bg: #dc2626;
+    --delete-button-hover-bg: #b91c1c;
+    --object-tools-bg: #1f2937;
+    --object-tools-hover-bg: #334155;
+}
+
+body,
+#container,
+.module,
+.dashboard .module table,
+#content,
+#content-related,
+.inline-group {
+    background: #0b1220 !important;
+    color: #e5e7eb !important;
+}
+
+.module,
+.inline-group,
+#content-main,
+#content-related {
+    border-radius: 16px !important;
+    overflow: hidden;
+    border: 1px solid #334155 !important;
+}
+
+#header {
+    background: #0f172a !important;
+    color: white !important;
+}
+
+#site-name a {
+    color: #facc15 !important;
+}
+
+div.breadcrumbs {
+    background: #1f2937 !important;
+}
+
+.module h2,
+.module caption,
+.inline-group h2 {
+    background: #334155 !important;
+    color: white !important;
+    font-weight: 700;
+}
+
+a:link,
+a:visited {
+    color: #38bdf8;
+}
+
+a:hover {
+    color: #facc15;
+}
+
+.button,
+input[type=submit],
+input[type=button],
+.submit-row input,
+a.button {
+    border-radius: 10px !important;
+    border: none !important;
+    font-weight: 700;
+}
+
+.object-tools a {
+    border-radius: 10px !important;
+}
+
+#nav-sidebar {
+    background: #0f172a !important;
+    border-right: 1px solid #334155 !important;
+}
+
+#nav-sidebar .current-model {
+    background: #1e293b !important;
+}
+
+#changelist-filter {
+    background: #111827 !important;
+    border-left: 1px solid #334155 !important;
+}
+
+.selector-chosen h2,
+.selector-available h2 {
+    background: #334155 !important;
+}

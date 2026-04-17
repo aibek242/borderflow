@@ -1,21 +1,30 @@
-from django.contrib.auth.models import User
 from django.db import models
-from django.utils import timezone
+from django.contrib.auth.models import User
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 class UserProfile(models.Model):
     ROLE_CHOICES = [
-        ('driver', 'Водитель'),
         ('company', 'Компания'),
+        ('driver', 'Водитель'),
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='company')
-    company_name = models.CharField(max_length=255, blank=True)
-    phone = models.CharField(max_length=50, blank=True)
+    company_name = models.CharField(max_length=255, blank=True, null=True)
+    phone = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
-        return f'{self.user.username} ({self.get_role_display()})'
+        return f'{self.user.username} - {self.role}'
+
+
+@receiver(post_save, sender=User)
+def create_or_update_user_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.create(user=instance)
+    else:
+        UserProfile.objects.get_or_create(user=instance)
 
 
 class Shipment(models.Model):
@@ -30,103 +39,68 @@ class Shipment(models.Model):
         ('cancelled', 'Отменён'),
     ]
 
-    FRAGILE_LEVELS = [
-        ('low', 'Низкая'),
-        ('medium', 'Средняя'),
-        ('high', 'Высокая'),
+    FRAGILE_CHOICES = [
+        ('low', 'Низкий'),
+        ('medium', 'Средний'),
+        ('high', 'Высокий'),
     ]
 
     title = models.CharField(max_length=255)
     sender = models.CharField(max_length=255)
     receiver = models.CharField(max_length=255)
 
-    company = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='company_shipments',
-        verbose_name='Компания'
-    )
-    driver = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='driver_shipments',
-        verbose_name='Водитель'
-    )
+    company = models.ForeignKey(User, on_delete=models.CASCADE, related_name='company_shipments')
+    driver = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='driver_shipments')
 
-    origin_city = models.CharField(max_length=255, blank=True, verbose_name='Город отправления')
-    destination_city = models.CharField(max_length=255, blank=True, verbose_name='Город назначения')
+    origin_city = models.CharField(max_length=255, blank=True, null=True)
+    destination_city = models.CharField(max_length=255, blank=True, null=True)
 
-    origin_lat = models.FloatField(null=True, blank=True)
-    origin_lng = models.FloatField(null=True, blank=True)
-    destination_lat = models.FloatField(null=True, blank=True)
-    destination_lng = models.FloatField(null=True, blank=True)
+    origin_lat = models.FloatField(blank=True, null=True)
+    origin_lng = models.FloatField(blank=True, null=True)
+    destination_lat = models.FloatField(blank=True, null=True)
+    destination_lng = models.FloatField(blank=True, null=True)
 
-    route = models.CharField(max_length=255, blank=True)
-    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='created')
-    weight = models.FloatField(default=0)
-    price = models.FloatField(default=0)
+    route = models.CharField(max_length=255, blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='created')
 
-    is_fragile = models.BooleanField(default=False, verbose_name='Хрупкий груз')
-    fragile_level = models.CharField(
-        max_length=20,
-        choices=FRAGILE_LEVELS,
-        default='low',
-        verbose_name='Уровень хрупкости'
-    )
+    weight = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
 
-    is_delayed = models.BooleanField(default=False, verbose_name='Есть задержка')
-    delay_reason = models.CharField(max_length=255, blank=True, verbose_name='Причина задержки')
-    delay_minutes = models.PositiveIntegerField(default=0, verbose_name='Задержка в минутах')
+    is_fragile = models.BooleanField(default=False)
+    fragile_level = models.CharField(max_length=20, choices=FRAGILE_CHOICES, default='low')
 
-    started_at = models.DateTimeField(null=True, blank=True)
-    estimated_arrival = models.DateTimeField(null=True, blank=True, verbose_name='Ожидаемое прибытие')
-    actual_arrival = models.DateTimeField(null=True, blank=True, verbose_name='Фактическое прибытие')
+    is_delayed = models.BooleanField(default=False)
+    delay_reason = models.TextField(blank=True, null=True)
+    delay_minutes = models.PositiveIntegerField(default=0)
 
-    progress_percent = models.PositiveIntegerField(default=0, verbose_name='Прогресс маршрута')
+    progress_percent = models.PositiveIntegerField(default=0)
+
+    started_at = models.DateTimeField(blank=True, null=True)
+    estimated_arrival = models.DateTimeField(blank=True, null=True)
+    actual_arrival = models.DateTimeField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['-created_at']
-        verbose_name = 'Отправка'
-        verbose_name_plural = 'Отправки'
 
     def __str__(self):
         return self.title
 
-    @property
-    def last_location(self):
-        return self.locations.order_by('-recorded_at').first()
-
 
 class ShipmentContract(models.Model):
-    shipment = models.OneToOneField(Shipment, on_delete=models.CASCADE)
-    contract_id = models.CharField(max_length=255)
-    status = models.CharField(max_length=50, default='draft')
+    STATUS_CHOICES = [
+        ('created', 'Создан'),
+        ('signed', 'Подписан'),
+        ('cancelled', 'Отменён'),
+    ]
+
+    shipment = models.OneToOneField(Shipment, on_delete=models.CASCADE, related_name='contract')
+    contract_id = models.CharField(max_length=255, unique=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='created')
     signed_by_sender = models.BooleanField(default=False)
     signed_by_receiver = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f'Contract for {self.shipment.title}'
-
-
-class ShipmentLocation(models.Model):
-    shipment = models.ForeignKey(Shipment, on_delete=models.CASCADE, related_name='locations')
-    latitude = models.FloatField()
-    longitude = models.FloatField()
-    speed = models.FloatField(default=0)
-    recorded_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['-recorded_at']
-
-    def __str__(self):
-        return f'{self.shipment.title} ({self.latitude}, {self.longitude})'
+        return f'Контракт {self.contract_id}'
 
 
 class ShipmentDocument(models.Model):
@@ -155,7 +129,7 @@ class ShipmentDocument(models.Model):
 class ShipmentEvent(models.Model):
     shipment = models.ForeignKey(Shipment, on_delete=models.CASCADE, related_name='events')
     title = models.CharField(max_length=255)
-    message = models.TextField(blank=True)
+    message = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -168,12 +142,52 @@ class ShipmentEvent(models.Model):
 class Notification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
     title = models.CharField(max_length=255)
-    message = models.TextField(blank=True)
+    message = models.TextField(blank=True, null=True)
     is_read = models.BooleanField(default=False)
-    created_at = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-created_at']
 
     def __str__(self):
-        return self.title
+        return f'{self.user.username} - {self.title}'
+
+
+class SupportTicket(models.Model):
+    STATUS_CHOICES = [
+        ('open', 'Открыт'),
+        ('in_progress', 'В работе'),
+        ('closed', 'Закрыт'),
+    ]
+
+    PRIORITY_CHOICES = [
+        ('low', 'Низкий'),
+        ('medium', 'Средний'),
+        ('high', 'Высокий'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='support_tickets')
+    subject = models.CharField(max_length=255)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='medium')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.subject} ({self.user.username})'
+
+
+class SupportMessage(models.Model):
+    ticket = models.ForeignKey(SupportTicket, on_delete=models.CASCADE, related_name='messages')
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_admin_reply = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'{self.author.username}: {self.message[:30]}'

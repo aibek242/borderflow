@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}Поддержка | BorderFlow{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="fw-bold mb-0">Поддержка</h1>
+    <a href="{% url 'support_create' %}" class="btn btn-warning fw-semibold">+ Новое обращение</a>
+</div>
+
+<div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-4">
+        {% for ticket in tickets %}
+            <div class="border rounded-4 p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-bold">{{ ticket.subject }}</div>
+                        <div class="text-muted small">
+                            {{ ticket.get_status_display }} • {{ ticket.get_priority_display }} • {{ ticket.created_at }}
+                        </div>
+                    </div>
+                    <a href="{% url 'support_detail' ticket.id %}" class="btn btn-outline-dark btn-sm">Открыть</a>
+                </div>
+            </div>
+        {% empty %}
+            <div class="text-muted">Пока нет обращений.</div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

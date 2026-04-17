@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}Обращение | BorderFlow{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+    <div>
+        <h1 class="fw-bold mb-1">{{ ticket.subject }}</h1>
+        <div class="text-muted">
+            {{ ticket.get_status_display }} • {{ ticket.get_priority_display }}
+        </div>
+    </div>
+
+    {% if user.is_staff and ticket.status != 'closed' %}
+        <form method="post" action="{% url 'close_ticket' ticket.id %}">
+            {% csrf_token %}
+            <button class="btn btn-danger fw-semibold">Закрыть обращение</button>
+        </form>
+    {% endif %}
+</div>
+
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-body p-4">
+        {% for msg in ticket.messages.all %}
+            <div class="mb-3 p-3 rounded-4 {% if msg.is_admin_reply %}bg-light border{% else %}border{% endif %}">
+                <div class="fw-semibold">
+                    {{ msg.author.username }}
+                    {% if msg.is_admin_reply %}<span class="badge text-bg-dark ms-2">Поддержка</span>{% endif %}
+                </div>
+                <div class="mt-2">{{ msg.message }}</div>
+                <div class="small text-muted mt-2">{{ msg.created_at }}</div>
+            </div>
+        {% empty %}
+            <div class="text-muted">Сообщений пока нет.</div>
+        {% endfor %}
+    </div>
+</div>
+
+{% if ticket.status != 'closed' %}
+<div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body p-4">
+        <h4 class="fw-bold mb-3">Ответить</h4>
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                {{ form.message }}
+            </div>
+            <button type="submit" class="btn btn-warning fw-semibold">Отправить</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

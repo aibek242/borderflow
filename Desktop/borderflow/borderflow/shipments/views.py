@@ -19,6 +19,8 @@ from .forms import (
     LoginForm,
     RegisterForm,
     ShipmentDelayForm,
+    SupportTicketForm,
+    SupportMessageForm,
 )
 from .models import (
     Shipment,
@@ -27,6 +29,8 @@ from .models import (
     ShipmentEvent,
     Notification,
     UserProfile,
+    SupportTicket,
+    SupportMessage,
 )
 
 
@@ -189,7 +193,6 @@ def home(request):
     delayed = request.GET.get('delayed', '').strip()
 
     shipments = Shipment.objects.select_related('company', 'driver').all()
-
     role = user_role(request.user)
 
     if role == 'driver':
@@ -599,6 +602,8 @@ def upload_document(request, pk):
 
             messages.success(request, 'Документ успешно загружен.')
             return redirect('shipment_documents', pk=shipment.pk)
+        else:
+            messages.error(request, 'Проверь форму. Все обязательные поля должны быть заполнены.')
     else:
         form = ShipmentDocumentForm()
 
@@ -659,6 +664,95 @@ def mark_notification_read(request, pk):
     notification.is_read = True
     notification.save()
     return redirect('home')
+
+
+@login_required
+def support_list(request):
+    tickets = SupportTicket.objects.filter(user=request.user).order_by('-created_at')
+    return render(request, 'shipments/support_list.html', {'tickets': tickets})
+
+
+@login_required
+def support_create(request):
+    if request.method == 'POST':
+        form = SupportTicketForm(request.POST)
+        message_form = SupportMessageForm(request.POST)
+
+        if form.is_valid() and message_form.is_valid():
+            ticket = form.save(commit=False)
+            ticket.user = request.user
+            ticket.save()
+
+            msg = message_form.save(commit=False)
+            msg.ticket = ticket
+            msg.author = request.user
+            msg.is_admin_reply = request.user.is_staff
+            msg.save()
+
+            messages.success(request, 'Обращение в поддержку создано.')
+            return redirect('support_detail', pk=ticket.pk)
+    else:
+        form = SupportTicketForm()
+        message_form = SupportMessageForm()
+
+    return render(request, 'shipments/support_create.html', {
+        'form': form,
+        'message_form': message_form,
+    })
+
+
+@login_required
+def support_detail(request, pk):
+    ticket = get_object_or_404(SupportTicket, pk=pk)
+
+    if request.user != ticket.user and not request.user.is_staff:
+        return HttpResponseForbidden('Нет доступа.')
+
+    if request.method == 'POST':
+        form = SupportMessageForm(request.POST)
+        if form.is_valid():
+            msg = form.save(commit=False)
+            msg.ticket = ticket
+            msg.author = request.user
+            msg.is_admin_reply = request.user.is_staff
+            msg.save()
+
+            if request.user.is_staff and ticket.status == 'open':
+                ticket.status = 'in_progress'
+                ticket.save()
+
+            messages.success(request, 'Сообщение отправлено.')
+            return redirect('support_detail', pk=ticket.pk)
+    else:
+        form = SupportMessageForm()
+
+    return render(request, 'shipments/support_detail.html', {
+        'ticket': ticket,
+        'form': form,
+    })
+
+
+@login_required
+def admin_support_list(request):
+    if not request.user.is_staff:
+        return HttpResponseForbidden('Доступ только для администратора.')
+
+    tickets = SupportTicket.objects.all().order_by('-created_at')
+    return render(request, 'shipments/admin_support_list.html', {'tickets': tickets})
+
+
+@login_required
+@require_POST
+def close_ticket(request, pk):
+    if not request.user.is_staff:
+        return HttpResponseForbidden('Доступ только для администратора.')
+
+    ticket = get_object_or_404(SupportTicket, pk=pk)
+    ticket.status = 'closed'
+    ticket.save()
+
+    messages.success(request, 'Обращение закрыто.')
+    return redirect('support_detail', pk=pk)
 
 
 def about(request):

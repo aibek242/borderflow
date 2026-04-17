@@ -5,6 +5,3 @@ class ShipmentsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'shipments'
     verbose_name = 'Отправки'
-
-    def ready(self):
-        import shipments.signals 

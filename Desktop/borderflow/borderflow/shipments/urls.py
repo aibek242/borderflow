@@ -1,5 +1,4 @@
 from django.urls import path
-from .views import about
 from .views import (
     landing,
     login_view,
@@ -22,14 +21,21 @@ from .views import (
     delay_shipment,
     complete_shipment,
     mark_notification_read,
+    about,
+    support_list,
+    support_create,
+    support_detail,
+    admin_support_list,
+    close_ticket,
 )
 
 urlpatterns = [
-    path('about/', about, name='about'),
     path('', landing, name='landing'),
     path('login/', login_view, name='login'),
     path('register/', register_view, name='register'),
     path('logout/', logout_view, name='logout'),
+
+    path('about/', about, name='about'),
 
     path('home/', home, name='home'),
     path('driver/', driver_panel, name='driver_panel'),
@@ -52,6 +58,12 @@ urlpatterns = [
     path('map/<int:pk>/', shipment_map, name='shipment_map'),
 
     path('notifications/<int:pk>/read/', mark_notification_read, name='mark_notification_read'),
+
+    path('support/', support_list, name='support_list'),
+    path('support/create/', support_create, name='support_create'),
+    path('support/<int:pk>/', support_detail, name='support_detail'),
+    path('support/admin/', admin_support_list, name='admin_support_list'),
+    path('support/<int:pk>/close/', close_ticket, name='close_ticket'),
 
     path('api/shipments/', api_shipments, name='api_shipments'),
     path('api/shipments/<int:pk>/', api_shipment_detail, name='api_shipment_detail'),

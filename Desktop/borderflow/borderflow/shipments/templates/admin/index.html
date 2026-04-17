@@ -1,0 +1,273 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .admin-dashboard {
+        display: grid;
+        gap: 20px;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(180px, 1fr));
+        gap: 16px;
+        margin-bottom: 8px;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, #0f172a, #1e3a8a);
+        color: white;
+        border-radius: 18px;
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+
+    .stat-card h3 {
+        margin: 0;
+        font-size: 15px;
+        opacity: .9;
+        font-weight: 600;
+    }
+
+    .stat-card .value {
+        margin-top: 10px;
+        font-size: 34px;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .hero-box {
+        background: linear-gradient(135deg, #0f172a, #1d4ed8);
+        color: white;
+        border-radius: 22px;
+        padding: 26px;
+        margin-bottom: 18px;
+        box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+
+    .hero-box h2 {
+        margin: 0 0 8px 0;
+        font-size: 22px;
+        font-weight: 800;
+        color: white;
+    }
+
+    .hero-box p {
+        margin: 0;
+        opacity: .9;
+        font-size: 15px;
+    }
+
+    .quick-links {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(160px, 1fr));
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    .quick-link {
+        display: block;
+        text-decoration: none;
+        background: #111827;
+        border: 1px solid #334155;
+        color: #e5e7eb !important;
+        padding: 16px;
+        border-radius: 16px;
+        font-weight: 700;
+        text-align: center;
+        transition: .2s ease;
+    }
+
+    .quick-link:hover {
+        transform: translateY(-2px);
+        border-color: #facc15;
+        color: #facc15 !important;
+    }
+
+    .custom-models {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+    }
+
+    .custom-panel {
+        background: #111827;
+        border: 1px solid #334155;
+        border-radius: 18px;
+        overflow: hidden;
+    }
+
+    .custom-panel h3 {
+        margin: 0;
+        padding: 14px 18px;
+        background: #334155;
+        color: white;
+        font-size: 16px;
+        font-weight: 800;
+    }
+
+    .custom-panel .panel-body {
+        padding: 14px 18px;
+    }
+
+    .custom-panel ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .custom-panel li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #1f2937;
+    }
+
+    .custom-panel li:last-child {
+        border-bottom: none;
+    }
+
+    .custom-panel a {
+        color: #38bdf8 !important;
+        text-decoration: none;
+        font-weight: 700;
+    }
+
+    .custom-panel a:hover {
+        color: #facc15 !important;
+    }
+
+    .actions a {
+        margin-left: 12px;
+        font-size: 14px;
+    }
+
+    @media (max-width: 1100px) {
+        .stats-grid,
+        .quick-links,
+        .custom-models {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 700px) {
+        .stats-grid,
+        .quick-links,
+        .custom-models {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .dashboard #content {
+        width: 100%;
+    }
+
+    #content-related {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-dashboard">
+    <div class="hero-box">
+        <h2>Панель управления BorderFlow</h2>
+        <p>Управление отправками, пользователями, документами, поддержкой и внутренними процессами.</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <h3>Всего отправок</h3>
+            <div class="value">{{ app_list.0.models|length|default:"0" }}</div>
+        </div>
+        <div class="stat-card">
+            <h3>Поддержка</h3>
+            <div class="value">24/7</div>
+        </div>
+        <div class="stat-card">
+            <h3>Статус системы</h3>
+            <div class="value">OK</div>
+        </div>
+        <div class="stat-card">
+            <h3>Админ-доступ</h3>
+            <div class="value">ON</div>
+        </div>
+    </div>
+
+    <div class="quick-links">
+        <a class="quick-link" href="/admin/shipments/shipment/">Отправки</a>
+        <a class="quick-link" href="/admin/shipments/supportticket/">Поддержка</a>
+        <a class="quick-link" href="/admin/auth/user/">Пользователи</a>
+        <a class="quick-link" href="/">На сайт</a>
+    </div>
+
+    <div class="custom-models">
+        <div class="custom-panel">
+            <h3>Логистика</h3>
+            <div class="panel-body">
+                <ul>
+                    <li>
+                        <a href="/admin/shipments/shipment/">Отправки</a>
+                        <span class="actions">
+                            <a href="/admin/shipments/shipment/add/">Добавить</a>
+                        </span>
+                    </li>
+                    <li>
+                        <a href="/admin/shipments/shipmentdocument/">Документы</a>
+                        <span class="actions">
+                            <a href="/admin/shipments/shipmentdocument/add/">Добавить</a>
+                        </span>
+                    </li>
+                    <li>
+                        <a href="/admin/shipments/shipmentcontract/">Контракты</a>
+                        <span class="actions">
+                            <a href="/admin/shipments/shipmentcontract/add/">Добавить</a>
+                        </span>
+                    </li>
+                    <li>
+                        <a href="/admin/shipments/shipmentevent/">События</a>
+                        <span class="actions">
+                            <a href="/admin/shipments/shipmentevent/add/">Добавить</a>
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="custom-panel">
+            <h3>Пользователи и поддержка</h3>
+            <div class="panel-body">
+                <ul>
+                    <li>
+                        <a href="/admin/auth/user/">Пользователи</a>
+                        <span class="actions">
+                            <a href="/admin/auth/user/add/">Добавить</a>
+                        </span>
+                    </li>
+                    <li>
+                        <a href="/admin/shipments/userprofile/">Профили</a>
+                        <span class="actions">
+                            <a href="/admin/shipments/userprofile/add/">Добавить</a>
+                        </span>
+                    </li>
+                    <li>
+                        <a href="/admin/shipments/supportticket/">Обращения</a>
+                        <span class="actions">
+                            <a href="/admin/shipments/supportticket/add/">Добавить</a>
+                        </span>
+                    </li>
+                    <li>
+                        <a href="/admin/shipments/supportmessage/">Сообщения</a>
+                        <span class="actions">
+                            <a href="/admin/shipments/supportmessage/add/">Добавить</a>
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

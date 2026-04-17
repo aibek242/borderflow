@@ -1,0 +1,17 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}BorderFlow Admin{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/custom_admin.css' %}">
+{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="/admin/" style="font-weight:700;">BorderFlow Admin</a>
+</h1>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}

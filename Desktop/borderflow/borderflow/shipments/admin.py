@@ -1,57 +1,78 @@
-from django.urls import path
-from .views import (
-    landing,
-    login_view,
-    register_view,
-    logout_view,
-    home,
-    driver_panel,
-    create_shipment,
-    edit_shipment,
-    delete_shipment,
-    sign_contract,
-    contract_webhook,
-    api_shipments,
-    api_shipment_detail,
-    shipment_documents,
-    upload_document,
-    delete_document,
-    shipment_map,
-    start_shipment,
-    delay_shipment,
-    complete_shipment,
-    mark_notification_read,
+from django.contrib import admin
+from .models import (
+    Shipment,
+    ShipmentContract,
+    ShipmentDocument,
+    UserProfile,
+    ShipmentEvent,
+    Notification,
+    SupportTicket,
+    SupportMessage,
 )
 
-urlpatterns = [
-    path('', landing, name='landing'),
-    path('login/', login_view, name='login'),
-    path('register/', register_view, name='register'),
-    path('logout/', logout_view, name='logout'),
 
-    path('home/', home, name='home'),
-    path('driver/', driver_panel, name='driver_panel'),
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'role', 'company_name', 'phone')
+    list_filter = ('role',)
+    search_fields = ('user__username', 'user__email', 'company_name')
 
-    path('create/', create_shipment, name='create_shipment'),
-    path('edit/<int:pk>/', edit_shipment, name='edit_shipment'),
-    path('delete/<int:pk>/', delete_shipment, name='delete_shipment'),
 
-    path('shipment/<int:pk>/start/', start_shipment, name='start_shipment'),
-    path('shipment/<int:pk>/delay/', delay_shipment, name='delay_shipment'),
-    path('shipment/<int:pk>/complete/', complete_shipment, name='complete_shipment'),
+@admin.register(Shipment)
+class ShipmentAdmin(admin.ModelAdmin):
+    list_display = (
+        'id',
+        'title',
+        'company',
+        'driver',
+        'sender',
+        'receiver',
+        'origin_city',
+        'destination_city',
+        'status',
+        'is_fragile',
+        'is_delayed',
+        'progress_percent',
+        'created_at'
+    )
+    search_fields = ('title', 'sender', 'receiver', 'origin_city', 'destination_city', 'route')
+    list_filter = ('status', 'is_fragile', 'is_delayed', 'fragile_level')
 
-    path('contract/<int:shipment_id>/', sign_contract, name='sign_contract'),
-    path('webhook/contract/', contract_webhook, name='contract_webhook'),
 
-    path('documents/<int:pk>/', shipment_documents, name='shipment_documents'),
-    path('documents/<int:pk>/upload/', upload_document, name='upload_document'),
-    path('documents/delete/<int:pk>/', delete_document, name='delete_document'),
+@admin.register(ShipmentContract)
+class ShipmentContractAdmin(admin.ModelAdmin):
+    list_display = ('id', 'shipment', 'contract_id', 'status', 'signed_by_sender', 'signed_by_receiver', 'created_at')
 
-    path('map/<int:pk>/', shipment_map, name='shipment_map'),
 
-    path('notifications/<int:pk>/read/', mark_notification_read, name='mark_notification_read'),
+@admin.register(ShipmentDocument)
+class ShipmentDocumentAdmin(admin.ModelAdmin):
+    list_display = ('id', 'shipment', 'document_type', 'title', 'uploaded_at')
+    list_filter = ('document_type', 'uploaded_at')
+    search_fields = ('title', 'shipment__title')
 
-    path('api/shipments/', api_shipments, name='api_shipments'),
-    path('api/shipments/<int:pk>/', api_shipment_detail, name='api_shipment_detail'),
-    
-]
+
+@admin.register(ShipmentEvent)
+class ShipmentEventAdmin(admin.ModelAdmin):
+    list_display = ('id', 'shipment', 'title', 'created_at')
+    search_fields = ('shipment__title', 'title')
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'title', 'is_read', 'created_at')
+    list_filter = ('is_read', 'created_at')
+    search_fields = ('user__username', 'title')
+
+
+@admin.register(SupportTicket)
+class SupportTicketAdmin(admin.ModelAdmin):
+    list_display = ('id', 'subject', 'user', 'status', 'priority', 'created_at')
+    list_filter = ('status', 'priority', 'created_at')
+    search_fields = ('subject', 'user__username')
+
+
+@admin.register(SupportMessage)
+class SupportMessageAdmin(admin.ModelAdmin):
+    list_display = ('id', 'ticket', 'author', 'is_admin_reply', 'created_at')
+    list_filter = ('is_admin_reply', 'created_at')
+    search_fields = ('ticket__subject', 'author__username')
