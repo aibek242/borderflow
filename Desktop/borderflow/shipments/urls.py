@@ -16,6 +16,7 @@ from .views import (
     shipment_documents,
     upload_document,
     delete_document,
+    download_document,
     shipment_map,
     start_shipment,
     delay_shipment,
@@ -53,6 +54,7 @@ urlpatterns = [
 
     path('documents/<int:pk>/', shipment_documents, name='shipment_documents'),
     path('documents/<int:pk>/upload/', upload_document, name='upload_document'),
+    path('documents/<int:shipment_pk>/download/<int:doc_pk>/', download_document, name='download_document'),
     path('documents/delete/<int:pk>/', delete_document, name='delete_document'),
 
     path('map/<int:pk>/', shipment_map, name='shipment_map'),

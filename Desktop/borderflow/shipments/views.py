@@ -7,8 +7,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.db.models import Q
-from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseForbidden
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseForbidden, FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
+import os
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -577,6 +578,23 @@ def shipment_documents(request, pk):
         'shipment': shipment,
         'documents': documents,
     })
+
+
+@login_required
+def download_document(request, shipment_pk, doc_pk):
+    ensure_user_profile(request.user)
+    shipment = get_object_or_404(Shipment, id=shipment_pk)
+    document = get_object_or_404(ShipmentDocument, id=doc_pk, shipment=shipment)
+    
+    if request.user != shipment.company and request.user != shipment.driver:
+        raise Http404("Нет доступа")
+        
+    try:
+        filename = os.path.basename(document.file.name)
+        response = FileResponse(document.file.open('rb'), as_attachment=True, filename=filename)
+        return response
+    except Exception:
+        raise Http404("Файл не найден")
 
 
 @login_required
