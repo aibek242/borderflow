@@ -23,7 +23,6 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 # Application definition
-
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -31,16 +30,13 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
     "storages",  # Для работы с Supabase S3
-
     "shipments.apps.ShipmentsConfig",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware", # Для статики на Render
-
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -69,11 +65,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "wsgi.application"
 
-
-# ================= DATABASE (Твои настройки Supabase Postgres) =================
-
+# ================= DATABASE (Настройки Supabase Postgres) =================
 DATABASE_URL = os.getenv("DATABASE_URL")
-
 if DATABASE_URL:
     DATABASES = {
         "default": dj_database_url.parse(
@@ -99,27 +92,17 @@ TIME_ZONE = "Asia/Qyzylorda"
 USE_I18N = True
 USE_TZ = True
 
-
 # ================= STATIC FILES (Настройки WhiteNoise) =================
-
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
 
-
-# ================= MEDIA & STORAGE (Исправленный блок) =================
-
+# ================= MEDIA & STORAGE =================
 USE_S3 = os.getenv("USE_S3", "False") == "True"
-
-# Находим этот блок в твоем settings.py
-# ================= MEDIA & STORAGE (DEBUG MODE) =================
-
-# Мы временно ПРИНУДИТЕЛЬНО ставим True, чтобы проверить, 
-# изменятся ли ссылки в логах.
-USE_S3 = os.getenv("USE_S3", "True") == "True" 
-
+# Мы временно ПРИНУДИТЕЛЬНО ставим True, чтобы проверить,
+# изменятся ли ссылки в логах Render при запуске
 print(f"DEBUG: USE_S3 is set to {USE_S3}") # Это отобразится в логах Render при запуске
 
 if USE_S3:
@@ -127,40 +110,34 @@ if USE_S3:
     AWS_SECRET_ACCESS_KEY = os.getenv("SUPABASE_SECRET_KEY")
     AWS_STORAGE_BUCKET_NAME = os.getenv("SUPABASE_BUCKET_NAME")
     AWS_S3_ENDPOINT_URL = os.getenv("SUPABASE_ENDPOINT")
-    
     AWS_S3_REGION_NAME = "us-east-1"
     AWS_QUERYSTRING_AUTH = False  # Отключаем подписи в ссылках
     AWS_S3_FILE_OVERWRITE = False
-    
+
     # 1. Вырезаем ID проекта (например, 'avtyw...') из эндпоинта
-    # Из https://avtyw.supabase.co/storage/v1/s3 получаем avtyw
     PROJECT_ID = AWS_S3_ENDPOINT_URL.split('//')[1].split('.')[0]
-    
+
     # 2. Указываем кастомный домен для публичных ссылок
-    # Это заставит Django генерировать путь /storage/v1/object/public/
     AWS_S3_CUSTOM_DOMAIN = f"{PROJECT_ID}.supabase.co/storage/v1/object/public/{AWS_STORAGE_BUCKET_NAME}"
-    
+
     # 3. Финальный MEDIA_URL будет выглядеть как прямая ссылка
     MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
-    
-    STORAGES = {
-        "default": {
-            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
-        },
-        "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-        },
-    }
+
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # ================= AUTH & SECURITY =================
-
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/home/"
 LOGOUT_REDIRECT_URL = "/login/"
-
-DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
