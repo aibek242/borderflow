@@ -35,8 +35,8 @@
                         <td>{{ document.get_document_type_display }}</td>
                         <td>{{ document.title }}</td>
                         <td>
-                            <a href="{% url 'download_document' shipment.id document.id %}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                Открыть
+                            <a href="{% url 'download_document' shipment.id document.id %}" target="_blank" download class="btn btn-sm btn-outline-primary">
+                                Скачать
                             </a>
                         </td>
                         <td>{{ document.uploaded_at }}</td>
