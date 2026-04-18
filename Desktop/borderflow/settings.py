@@ -99,45 +99,54 @@ STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
 
-# ================= MEDIA & STORAGE =================
+# ================== MEDIA & STORAGE ==================
 USE_S3 = os.getenv("USE_S3", "False") == "True"
-# Мы временно ПРИНУДИТЕЛЬНО ставим True, чтобы проверить,
-# изменятся ли ссылки в логах Render при запуске
-print(f"DEBUG: USE_S3 is set to {USE_S3}") # Это отобразится в логах Render при запуске
 
 if USE_S3:
     AWS_ACCESS_KEY_ID = os.getenv("SUPABASE_ACCESS_KEY")
     AWS_SECRET_ACCESS_KEY = os.getenv("SUPABASE_SECRET_KEY")
     AWS_STORAGE_BUCKET_NAME = os.getenv("SUPABASE_BUCKET_NAME")
-    AWS_S3_ENDPOINT_URL = os.getenv("SUPABASE_ENDPOINT")
-    AWS_S3_REGION_NAME = "us-east-1"
-    AWS_QUERYSTRING_AUTH = False  # Отключаем подписи в ссылках
+    
+    # ВАЖНО: Эндпоинт Supabase для S3 должен заканчиваться на /storage/v1/s3
+    # Если в env переменной его нет, добавьте вручную:
+    ENDPOINT_RAW = os.getenv("SUPABASE_ENDPOINT", "")
+    AWS_S3_ENDPOINT_URL = ENDPOINT_RAW if ENDPOINT_RAW.endswith("/s3") else f"{ENDPOINT_RAW}/storage/v1/s3"
+    
+    AWS_S3_REGION_NAME = "us-east-1" # или ваш регион Supabase
+    AWS_QUERYSTRING_AUTH = False
     AWS_S3_FILE_OVERWRITE = False
-
-    # 1. Вырезаем ID проекта (например, 'avtyw...') из эндпоинта
-    PROJECT_ID = AWS_S3_ENDPOINT_URL.split('//')[1].split('.')[0]
-
-    # 2. Указываем кастомный домен для публичных ссылок
-    AWS_S3_CUSTOM_DOMAIN = f"{PROJECT_ID}.supabase.co/storage/v1/object/public/{AWS_STORAGE_BUCKET_NAME}"
-
-    # 3. Финальный MEDIA_URL будет выглядеть как прямая ссылка
+    
+    # django-storages сам сформирует публичные ссылки, но для Supabase лучше указать явно:
+    PROJECT_REF = ENDPOINT_RAW.split("//")[1].split(".")[0]
+    AWS_S3_CUSTOM_DOMAIN = f"{PROJECT_REF}.supabase.co/storage/v1/object/public/{AWS_STORAGE_BUCKET_NAME}"
     MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
 
-STORAGES = {
-    "default": {
-        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
-    },
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
-}
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+else:
+    # Локальная разработка
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = BASE_DIR / "media"
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
 
-# ================= AUTH & SECURITY =================
+# ================== AUTH & SECURITY ==================
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/home/"
 LOGOUT_REDIRECT_URL = "/login/"
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
